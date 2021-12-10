@@ -1,0 +1,131 @@
+﻿@page "/"
+@inject HttpClient Http
+
+<h1>Crypto Information Service</h1>
+
+<p>See the list of pairs and currencies. Crypto to Crypto support for BTC - Bitcoin, LTC - Litecoin, and ETH - Ethereum</p>
+
+@if (currencies == null)
+{
+    <p><em>Loading currencies...</em></p>
+}
+// If the list is not empty
+else
+{
+    // Total Confirmations Button
+    <div>
+        <p>Total number of minimum confirmations: @count</p>
+        <button class="btn btn-primary" @onclick="TotalConfirmations">Get Total</button>
+    </div>
+    <br />
+    <label>Sort by: </label>
+    // Sorting function
+    <select @bind="SelectedSort">
+        <option value="coinsA">Ascending by Coin Name</option>
+        <option value="coinsD">Descending by Coin Name</option>
+        <option value="minAA">Lowest Minimum Amount</option>
+        <option value="minAD">Highest by Minimum Amount</option>
+        <option value="maxAA">Lowest by Maximum Amount</option>
+        <option value="maxAD">Highest by Maximum Amount</option>
+    </select>
+    <br />
+    // Displaying data in a table
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Currency Code</th>
+                <th>Currency Name</th>
+                <th>Minimum Confirmations</th>
+                <th>Crypto Currency</th>
+                <th>Minimum Amount</th>
+                <th>Maximum Amount</th>
+                <th>Pair Compatible</th>
+                <th>Pair Exists</th>
+                <th>Enabled Pairs</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var currency in currencies)
+            {
+                <tr>
+                    <td>@currency.code</td>
+                    <td>@currency.name</td>
+                    <td>@currency.min_confirmations</td>
+                    <td>@currency.is_crypto</td>
+                    <td>@currency.minimal_amount</td>
+                    <td>@currency.maximal_amount</td>
+                    <td>@currency.is_base_of_enabled_pair</td>
+                    <td>@currency.is_quote_of_enabled_pair</td>
+                    <td>@currency.has_enabled_pairs</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    private int count = 0;
+
+    private string selectedSort;
+    public string SelectedSort
+    {
+        get { return selectedSort; }
+        set
+        {
+            selectedSort = value;
+            selectedSortDictionary[selectedSort]();
+        }
+    }
+
+    // Sorted data
+    Dictionary<string, Action> selectedSortDictionary;
+
+    private Currency[] currencies;
+
+    // Get Data
+    protected override async Task OnInitializedAsync()
+    {
+        currencies = await Http.GetFromJsonAsync<Currency[]>("https://api.n.exchange/en/api/v1/currency/");
+        // Storing sorted data
+        selectedSortDictionary = new Dictionary<string, Action>
+        {
+            ["coinsA"] = () => currencies = currencies.OrderBy(s => s.code).ToArray(),
+            ["coinsD"] = () => currencies = currencies.OrderByDescending(s => s.code).ToArray(),
+            ["minAA"] = () => currencies = currencies.OrderBy(s => s.minimal_amount).ToArray(),
+            ["minAD"] = () => currencies = currencies.OrderByDescending(s => s.minimal_amount).ToArray(),
+            ["maxAA"] = () => currencies = currencies.OrderBy(s => s.maximal_amount).ToArray(),
+            ["maxAD"] = () => currencies = currencies.OrderByDescending(s => s.maximal_amount).ToArray(),
+        };
+    }
+
+    // Total confirmaitons function
+    public void TotalConfirmations()
+    {
+        foreach (var currency in currencies)
+        {
+            count += (Convert.ToInt32(currency.min_confirmations));
+        }
+    }
+
+    // Main class
+    public class Currency
+    {
+        public string code { get; set; }
+        public string name { get; set; }
+        public int? min_confirmations { get; set; }
+        public bool is_crypto { get; set; }
+        public string minimal_amount { get; set; }
+        public string maximal_amount { get; set; }
+        public bool is_base_of_enabled_pair { get; set; }
+        public bool is_quote_of_enabled_pair { get; set; }
+        public bool has_enabled_pairs { get; set; }
+        public bool is_base_of_enabled_pair_for_test { get; set; }
+        public bool is_quote_of_enabled_pair_for_test { get; set; }
+        public bool has_enabled_pairs_for_test { get; set; }
+        public string withdrawal_fee { get; set; }
+        public string extra_id { get; set; }
+    }
+
+
+}

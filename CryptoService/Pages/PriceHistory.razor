@@ -1,0 +1,131 @@
+﻿@page "/pricehistory"
+@inject HttpClient Http
+
+<h1>Crypto Information Service</h1>
+
+<p>See the price history and latest price of currencies and pairs. Crypto to Crypto support for BTC - Bitcoin, LTC - Litecoin, and ETH - Ethereum</p>
+
+@if (history == null)
+{
+    <p><em>Loading price history...</em></p>
+}
+// If the list is not empty
+else
+{   
+    // Search form with validation and search button
+    <EditForm Model="@Model">
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+        <div>
+            <label for="PairName">Pair Name</label>
+            <input id="PairName" @bind-value="Model.PairName" />
+            <ValidationMessage For="() => Model.PairName" />
+            <p></p>
+            <label for="Hours">Hours</label>
+            <input id="Hours" @bind-value="Model.Hours" />
+            <ValidationMessage For="() => Model.Hours" />
+            <p></p>
+            <label for="DataPoints">Data Points</label>
+            <input id="DataPoints" @bind-value="Model.DataPoints" />
+            <ValidationMessage For="() => Model.DataPoints" />
+            <p></p>
+        </div>
+        <div>
+            <button class="btn btn-primary" @onclick="Lookup">Search</button>
+        </div>
+        <br />
+    </EditForm>
+    
+    // Displaying data in a table
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Time of Price Creation</th>
+                <th>Price Creation Unix Timestamp</th>
+                <th>Price Expiration Unix Timestamp</th>
+                <th>Asking Price</th>
+                <th>Bidding Price</th>
+                <th>Market Name</th>
+                <th>Market Code</th>
+                <th>Rate</th>
+                <th>ID</th>
+                <th>Historic Prive Variance</th>
+                <th>Historic Prive Age</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in history)
+            {
+                <tr>
+                    <td>@item.created_on</td>
+                    <td>@item.unix_time</td>
+                    <td>@item.expiration_time_unix</td>
+                    <td>@item.ticker.ask</td>
+                    <td>@item.ticker.bid</td>
+                    <td>@item.market.name</td>
+                    <td>@item.market.code</td>
+                    <td>@item.rate</td>
+                    <td>@item.rate_id</td>
+                    <td>@item.allowed_historic_price_variance</td>
+                    <td>@item.allowed_historic_price_age</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+
+    // New Model Object for user inputs
+    Model Model = new Model();
+
+    private Root[] history;
+
+    // Get Data
+    protected override async Task OnInitializedAsync()
+    {
+        history = await Http.GetFromJsonAsync<Root[]>($"https://api.n.exchange/en/api/v1/price/BTCLTC/history/?hours=0.1&data_points=3&market_code=nex");
+    }
+
+    // Get Data by User
+    protected async Task SecondList()
+    {
+        history = await Http.GetFromJsonAsync<Root[]>($"https://api.n.exchange/en/api/v1/price/{Model.PairName}/history/?hours={Model.Hours}&data_points={Model.DataPoints}&market_code=nex");
+    }
+
+    // Search function
+    public void Lookup()
+    {
+        SecondList();
+        StateHasChanged();
+    }
+
+    // Other class
+    public class Ticker
+    {
+        public string ask { get; set; }
+        public string bid { get; set; }
+    }
+
+    // Other class
+    public class Market
+    {
+        public string name { get; set; }
+        public string code { get; set; }
+    }
+
+    // Main class
+    public class Root
+    {
+        public string detail { get; set; }
+        public DateTime created_on { get; set; }
+        public string unix_time { get; set; }
+        public string expiration_time_unix { get; set; }
+        public Ticker ticker { get; set; }
+        public Market market { get; set; }
+        public string rate { get; set; }
+        public string rate_id { get; set; }
+        public bool allowed_historic_price_variance { get; set; }
+        public bool allowed_historic_price_age { get; set; }
+    }
+}
